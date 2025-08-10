@@ -1,0 +1,82 @@
+cc_library(
+    name = "core",
+    hdrs = glob(["*.h"]),
+    srcs = glob(["*.cpp"]),
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "backends_glfw",
+    hdrs = ["backends/imgui_impl_glfw.h"],
+    srcs = ["backends/imgui_impl_glfw.cpp"],
+    strip_include_prefix = "backends",
+    deps = [":core", "@glfw_src//:glfw"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "backends_win32",
+    hdrs = ["backends/imgui_impl_win32.h"],
+    srcs = ["backends/imgui_impl_win32.cpp"],
+    strip_include_prefix = "backends",
+    deps = [":core"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "backends_dx9",
+    hdrs = ["backends/imgui_impl_dx9.h"],
+    srcs = ["backends/imgui_impl_dx9.cpp"],
+    strip_include_prefix = "backends",
+    deps = [":core"],
+    linkopts = ["d3d9.lib"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "backends_dx10",
+    hdrs = ["backends/imgui_impl_dx10.h"],
+    srcs = ["backends/imgui_impl_dx10.cpp"],
+    strip_include_prefix = "backends",
+    deps = [":core"],
+    linkopts = ["d3d10.lib", "d3dcompiler.lib"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "backends_dx11",
+    hdrs = ["backends/imgui_impl_dx11.h"],
+    srcs = ["backends/imgui_impl_dx11.cpp"],
+    strip_include_prefix = "backends",
+    deps = [":core"],
+    linkopts = ["d3d11.lib", "d3dcompiler.lib"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "backends_dx12",
+    hdrs = ["backends/imgui_impl_dx12.h"],
+    srcs = ["backends/imgui_impl_dx12.cpp"],
+    strip_include_prefix = "backends",
+    deps = [":core"],
+    linkopts = ["d3d12.lib", "d3dcompiler.lib", "dxgi.lib"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "backends_opengl3",
+    hdrs = [
+        "backends/imgui_impl_opengl3.h",
+        "backends/imgui_impl_opengl3_loader.h",
+    ],
+    srcs = ["backends/imgui_impl_opengl3.cpp"],
+    strip_include_prefix = "backends",
+    deps = [":core"],
+    linkopts = select({
+        "@platforms//os:windows": ["opengl32.lib"],
+        "@platforms//os:osx": ["-framework OpenGL"],
+        "@platforms//os:linux": ["-lGL"],
+    }),
+
+    visibility = ["//visibility:public"],
+)
