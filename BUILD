@@ -6,5 +6,6 @@ cc_binary(
         "@com_github_imgui//:backends_glfw",
         "@com_github_imgui//:backends_opengl3",
     ],
+    copts = ["/utf-8"],
     linkopts = ["Winmm.lib"],
 )
