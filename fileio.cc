@@ -6,6 +6,9 @@
 #include <vector>
 #include <iostream>
 #include <cstring>
+#include <thread>
+
+#include <portaudio.h>
 
 /*
   LoadWavRIFF:
@@ -232,3 +235,71 @@ bool LoadWavRIFF(const std::string& filename, WavData& out, bool convertToMono, 
   return true;
 }
 
+
+int PlayWavDataPaCallback(
+    const void* input,
+    void* output,
+    unsigned long frameCount,
+    const PaStreamCallbackTimeInfo* timeInfo,
+    PaStreamCallbackFlags statusFlags,
+    void* userData) {
+  auto& state = *static_cast<WavData*>(userData);
+  float* out = static_cast<float*>(output);
+  int pos = state.position.load();
+
+  for (unsigned long i = 0; i < frameCount; ++i) {
+    if (pos < state.frames()) {
+      for (int ch = 0; ch < state.channels; ++ch) {
+        *out++ = state.samples[pos * state.channels + ch];
+      }
+      pos++;
+    } else {
+      // 再生終わったら無音
+      for (int ch = 0; ch < state.channels; ++ch) {
+        *out++ = 0.0f;
+      }
+    }
+  }
+  state.position.store(pos);
+
+  if (pos >= state.frames())
+    return paComplete; // 再生終了
+
+  return paContinue;
+}
+
+PaStream* PlaySoundPortAudio(WavData& wav) {
+  std::string err;
+  PaStream* stream;
+  wav.position.store(0);
+  auto errPa = Pa_OpenDefaultStream(
+      &stream,
+      0, // 入力なし
+      wav.channels,
+      paFloat32,
+      wav.sampleRate,
+      paFramesPerBufferUnspecified,
+      PlayWavDataPaCallback,
+      &wav);
+  if (errPa != paNoError) {
+    std::cerr << "OpenDefaultStream error: " << Pa_GetErrorText(errPa) << "\n";
+    return nullptr;
+  }
+  return stream;
+  // errPa = Pa_StartStream(stream);
+  // if (errPa != paNoError) {
+  //   std::cerr << "StartStream error: " << Pa_GetErrorText(errPa) << "\n";
+  //   Pa_CloseStream(stream);
+  //   return false;
+  // }
+
+  // // 非同期再生 → 別スレッドで監視
+  // std::thread([stream]() {
+  //   while (Pa_IsStreamActive(stream) == 1) {
+  //     Pa_Sleep(50);
+  //   }
+  //   Pa_CloseStream(stream);
+  // }).detach();
+
+  // return true;
+}

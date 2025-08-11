@@ -2,6 +2,7 @@ cc_library(
     name = "fileio",
     srcs = ["fileio.cc"],
     hdrs = ["fileio.h"],
+    deps = ["@portaudio//:portaudio"],
 )
 
 cc_binary(

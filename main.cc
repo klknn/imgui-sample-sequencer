@@ -19,6 +19,7 @@ const int MAX_PATTERNS = 8;
 
 struct Sample {
   WavData wav;
+  std::string path;
   std::string name;
 };
 
@@ -65,9 +66,8 @@ int main(int, char**)
   for (int i = 0; i < SAMPLE_COUNT; ++i) {
     std::string name = sample_names[i];
     std::string path = "samples/" + name + ".wav";
-    WavData wav;
-    LoadWavRIFF(path, wav);
-    samples[i] = {wav, name};
+    samples[i].name = name;
+    LoadWavRIFF(path, samples[i].wav);
   }
 
   bool sequence[SAMPLE_COUNT][STEP_COUNT] = { false };
@@ -89,6 +89,7 @@ int main(int, char**)
   int currentStep = 0;
   double lastStepTime = glfwGetTime();
   const double stepDurationSec = 0.15;
+  PaStream* mainStream = nullptr;
 
   while (!glfwWindowShouldClose(window))
   {
@@ -109,6 +110,9 @@ int main(int, char**)
           if (on) {
             // MultiByteToWideChar(CP_ACP, 0, samples[i].filename, -1, path, 100);
             // PlaySound(path, NULL, SND_FILENAME | SND_ASYNC);
+            if (mainStream) Pa_CloseStream(mainStream);
+            mainStream = PlaySoundPortAudio(samples[i].wav);
+            if (mainStream) Pa_StartStream(mainStream);
           }
         }
 
