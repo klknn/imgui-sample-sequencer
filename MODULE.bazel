@@ -23,13 +23,18 @@ http_archive(
     sha256 = "4d025083cc4a3dd1f91ab9b9ba4f5807193823e565a5bcf4be202669d9911ea6",
 )
 
-
 bazel_dep(
-    name = "rules_foreign_cc",
-    version = "0.15.0",
+    name = "apple_support",
+    version = "1.22.1",
+    repo_name = "build_bazel_apple_support",
 )
 
 bazel_dep(
     name = "platforms",
     version = "0.0.11",
+)
+
+bazel_dep(
+    name = "portaudio",
+    version = "19.7.0.bcr.3",
 )

@@ -1,4 +1,6 @@
-#include <imgui.h>
+#include <portaudio.h>
+
+#include "imgui.h"
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
@@ -7,24 +9,26 @@
 #include <GLES2/gl2.h>
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
-
-// #include <GL/gl3w.h>    // Initialize with gl3wInit()
-// #include <GLFW/glfw3.h>
-
-#include <windows.h>  // PlaySound API
 #include <iostream>
-#include <vector>
+
+#include "fileio.h"
 
 const int STEP_COUNT = 16;
 const int SAMPLE_COUNT = 4;
 
 struct Sample {
-  const char* filename;
-  const char* name;
+  WavData wav;
+  std::string name;
 };
 
 int main(int, char**)
 {
+  auto pa_err = Pa_Initialize();
+  if (pa_err != paNoError) {
+    std::cerr << "PortAudio error: " << Pa_GetErrorText(pa_err);
+    return 1;
+}
+
   if (!glfwInit()) {
     std::cerr << "Failed to initialize GLFW\n";
     return 1;
@@ -33,7 +37,7 @@ int main(int, char**)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
   GLFWwindow* window = glfwCreateWindow(800, 600, "Simple DAW with ImGui + GLFW", NULL, NULL);
   if (!window) {
@@ -60,13 +64,15 @@ int main(int, char**)
   ImGui_ImplOpenGL3_Init("#version 330");
 
   // samples
-  Sample samples[SAMPLE_COUNT] = {
-    {"samples/kick.wav", "Kick"},
-    {"samples/snare.wav", "Snare"},
-    {"samples/hihat.wav", "Hi-Hat"},
-    {"samples/clap.wav", "Clap"}
-  };
-  wchar_t path[100];
+  Sample samples[SAMPLE_COUNT];
+  std::vector<std::string> sample_names = {"kick", "snare", "hihat", "clap"};
+  for (int i = 0; i < SAMPLE_COUNT; ++i) {
+    std::string name = sample_names[i];
+    std::string path = "samples/" + name + ".wav";
+    WavData wav;
+    LoadWavRIFF(path, wav);
+    samples[i] = {wav, name};
+  }
 
   bool sequence[SAMPLE_COUNT][STEP_COUNT] = { false };
 
@@ -88,8 +94,8 @@ int main(int, char**)
         // play
         for (int i = 0; i < SAMPLE_COUNT; i++) {
           if (sequence[i][currentStep]) {
-            MultiByteToWideChar(CP_ACP, 0, samples[i].filename, -1, path, 100);
-            PlaySound(path, NULL, SND_FILENAME | SND_ASYNC);
+            // MultiByteToWideChar(CP_ACP, 0, samples[i].filename, -1, path, 100);
+            // PlaySound(path, NULL, SND_FILENAME | SND_ASYNC);
           }
         }
         currentStep = (currentStep + 1) % STEP_COUNT;
@@ -115,7 +121,7 @@ int main(int, char**)
     ImGui::Separator();
 
     for (int i = 0; i < SAMPLE_COUNT; i++) {
-      ImGui::Text("%s", samples[i].name);
+      ImGui::Text("%s", samples[i].name.c_str());
       ImGui::SameLine();
       for (int step = 0; step < STEP_COUNT; step++) {
         ImVec4 col = (step == currentStep && play) ? ImVec4(0.4f, 0.8f, 0.4f, 1.0f) : ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
@@ -145,7 +151,7 @@ int main(int, char**)
     glfwSwapBuffers(window);
   }
 
-  // clean up
+  // imgui clean up
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
@@ -153,5 +159,10 @@ int main(int, char**)
   glfwDestroyWindow(window);
   glfwTerminate();
 
+  // pa clean up
+  pa_err = Pa_Terminate();
+  if(pa_err != paNoError) {
+    std::cerr << "PortAudio error: " << Pa_GetErrorText(pa_err);
+  }
   return 0;
 }
