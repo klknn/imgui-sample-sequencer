@@ -71,19 +71,14 @@ int main(int, char**)
   }
 
   bool sequence[SAMPLE_COUNT][STEP_COUNT] = { false };
-  // パターンリスト：各パターンは bool[SAMPLE_COUNT][STEP_COUNT]
   std::deque<bool> patterns[MAX_PATTERNS];
   for (int i = 0; i < MAX_PATTERNS; i++) {
     patterns[i].resize(SAMPLE_COUNT * STEP_COUNT, false);
   }
 
-  // 現在の編集パターンID
+  // States over loop.
   int currentPattern = 0;
-
-  // プレイリストはパターンIDの順番
-  std::vector<int> playlist = {0, 1};  // 例：最初はパターン0→パターン1
-
-  // プレイ中のプレイリスト再生状態
+  std::vector<int> playlist = {0};
   bool play = false;
   int currentPlaylistIndex = 0;
   int currentStep = 0;
@@ -91,25 +86,20 @@ int main(int, char**)
   const double stepDurationSec = 0.15;
   PaStream* mainStream = nullptr;
 
-  while (!glfwWindowShouldClose(window))
-  {
-    // イベント処理
+  while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    // 再生処理
+    // Audio block.
     if (play && !playlist.empty()) {
       double now = glfwGetTime();
       if (now - lastStepTime >= stepDurationSec) {
-        // 現在のパターンを取り出す
         int patId = playlist[currentPlaylistIndex];
         auto& pattern = patterns[patId];
 
-        // 今のステップで鳴らす音をPlaySound
+
         for (int i = 0; i < SAMPLE_COUNT; i++) {
           bool on = pattern[i * STEP_COUNT + currentStep];
           if (on) {
-            // MultiByteToWideChar(CP_ACP, 0, samples[i].filename, -1, path, 100);
-            // PlaySound(path, NULL, SND_FILENAME | SND_ASYNC);
             if (mainStream) Pa_CloseStream(mainStream);
             mainStream = PlaySoundPortAudio(samples[i].wav);
             if (mainStream) Pa_StartStream(mainStream);
@@ -119,25 +109,24 @@ int main(int, char**)
         currentStep++;
         if (currentStep >= STEP_COUNT) {
           currentStep = 0;
-          // プレイリストの次パターンへ
           currentPlaylistIndex++;
           if (currentPlaylistIndex >= (int)playlist.size()) {
-            currentPlaylistIndex = 0; // ループ再生
+            currentPlaylistIndex = 0; // loop.
           }
         }
         lastStepTime = now;
       }
     }
 
-    // ImGuiフレーム開始
+    // ImGui block.
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // パターン編集ウィンドウ
+    // pattern editor UI.
     ImGui::Begin("Pattern Editor");
 
-    // パターン切替ボタン
+    // pattern switch button.
     for (int p = 0; p < MAX_PATTERNS; p++) {
       ImGui::PushID(p);
       if (ImGui::RadioButton(std::to_string(p).c_str(), currentPattern == p)) {
@@ -150,10 +139,9 @@ int main(int, char**)
     }
     ImGui::NewLine();
 
-    // 編集対象のパターンを参照
     auto& editPattern = patterns[currentPattern];
 
-    // ステップシーケンサーのグリッド描画
+    // step sequencer UI.
     for (int i = 0; i < SAMPLE_COUNT; i++) {
       ImGui::Text("%s", samples[i].name.c_str());
       ImGui::SameLine();
@@ -171,15 +159,11 @@ int main(int, char**)
       }
       ImGui::NewLine();
     }
-
     ImGui::End();
 
-    // プレイリスト編集ウィンドウ
+    // playlist UI.
     ImGui::Begin("Playlist Editor");
-
     ImGui::Text("Playlist (pattern IDs):");
-
-    // プレイリストを並べて表示＋順序変更（簡易）
     for (int i = 0; i < (int)playlist.size(); i++) {
       ImGui::PushID(i);
       ImGui::Text("%d", playlist[i]);
@@ -199,15 +183,12 @@ int main(int, char**)
       }
       ImGui::PopID();
     }
-
-    // パターン追加ボタン
     if (ImGui::Button("Add current pattern to playlist")) {
       playlist.push_back(currentPattern);
     }
-
     ImGui::End();
 
-    // プレイコントロール
+    // playback window.
     ImGui::Begin("Playback Control");
     if (ImGui::Button(play ? "Stop" : "Play")) {
       play = !play;
@@ -220,7 +201,7 @@ int main(int, char**)
     ImGui::Text("Current playlist index: %d / %d", currentPlaylistIndex + 1, (int)playlist.size());
     ImGui::End();
 
-    // 描画処理
+    // render.
     ImGui::Render();
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);

@@ -1,13 +1,6 @@
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
-    name = "com_github_sdl",
-    build_file = "@//third_party:BUILD.sdl3",
-    strip_prefix = "SDL3-3.2.0",
-    url = "https://github.com/libsdl-org/SDL/releases/download/release-3.2.0/SDL3-3.2.0.tar.gz",
-)
-
-http_archive(
     name = "com_github_imgui",
     url = "https://github.com/ocornut/imgui/archive/refs/tags/v1.89.8.zip",
     strip_prefix = "imgui-1.89.8",

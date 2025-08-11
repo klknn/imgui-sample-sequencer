@@ -254,7 +254,7 @@ int PlayWavDataPaCallback(
       }
       pos++;
     } else {
-      // 再生終わったら無音
+      // pad silence.
       for (int ch = 0; ch < state.channels; ++ch) {
         *out++ = 0.0f;
       }
@@ -262,8 +262,7 @@ int PlayWavDataPaCallback(
   }
   state.position.store(pos);
 
-  if (pos >= state.frames())
-    return paComplete; // 再生終了
+  if (pos >= state.frames()) return paComplete;
 
   return paContinue;
 }
@@ -274,7 +273,7 @@ PaStream* PlaySoundPortAudio(WavData& wav) {
   wav.position.store(0);
   auto errPa = Pa_OpenDefaultStream(
       &stream,
-      0, // 入力なし
+      0, // no input.
       wav.channels,
       paFloat32,
       wav.sampleRate,
@@ -286,20 +285,4 @@ PaStream* PlaySoundPortAudio(WavData& wav) {
     return nullptr;
   }
   return stream;
-  // errPa = Pa_StartStream(stream);
-  // if (errPa != paNoError) {
-  //   std::cerr << "StartStream error: " << Pa_GetErrorText(errPa) << "\n";
-  //   Pa_CloseStream(stream);
-  //   return false;
-  // }
-
-  // // 非同期再生 → 別スレッドで監視
-  // std::thread([stream]() {
-  //   while (Pa_IsStreamActive(stream) == 1) {
-  //     Pa_Sleep(50);
-  //   }
-  //   Pa_CloseStream(stream);
-  // }).detach();
-
-  // return true;
 }
